@@ -22,7 +22,7 @@ async function ingestData() {
   const chapterLinks: { title: string; href: string }[] = [];
 
   $('a[href^="untitled-"]').each((i, el) => {
-    const href = $(el).attr("href")?.split("#")[0]; // Remove anchor
+    const href = $(el).attr("href")?.split("#")[0];
     const title = $(el).text().trim();
     if (href && title) {
       chapterLinks.push({ title, href });

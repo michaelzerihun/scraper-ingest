@@ -2,8 +2,8 @@
   "compilerOptions": {
     "strict": true,
     "verbatimModuleSyntax": false,
-    "module": "CommonJS", // Keep this if not already set; it's the default
-    "moduleResolution": "Node", // Or "Node16" if using newer Node features
-    "target": "ES2020" // Or whatever you have; adjust as needed
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "target": "ES2020"
   }
 }
