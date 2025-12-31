@@ -1,6 +1,11 @@
 # .gitignore for Catena Interview Project
 
 # Node.js general ignores
+
+data-ingest/node_modules/
+backend/node_modules/
+frontend/node_modules/
+
 node_modules/
 npm-debug.log
 yarn-error.log
