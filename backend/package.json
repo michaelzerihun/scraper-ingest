@@ -1,0 +1,16 @@
+{
+  "dependencies": {
+    "@hono/node-server": "^1.19.7",
+    "@supabase/supabase-js": "^2.89.0",
+    "@types/node": "^25.0.3",
+    "dotenv": "^17.2.3",
+    "hono": "^4.11.3",
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "start": "ts-node server.ts"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2"
+  }
+}
