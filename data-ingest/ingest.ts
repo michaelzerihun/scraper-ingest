@@ -45,7 +45,7 @@ async function main() {
 
   for (const cand of candidates) {
     const url = `${BASE_URL}${cand.href}`;
-    console.log(`\nProcessing: ${cand.title}`);
+    console.log(`Processing: ${cand.title}`);
     console.log(`URL: ${url}`);
 
     try {
@@ -53,17 +53,6 @@ async function main() {
       const $ = cheerio.load(html);
 
       let contentContainer = $('table[border="0"][width="100%"] td').eq(1);
-
-      if (contentContainer.text().trim().length < 300) {
-        console.log("Main selector low content → fallback");
-        contentContainer =
-          $("body")
-            .find("td")
-            .filter(function () {
-              return $(this).text().length > 500;
-            })
-            .first() || $("body");
-      }
 
       let rawContent = contentContainer.html() || contentContainer.text() || "";
 
@@ -80,22 +69,24 @@ async function main() {
         `Content length: ${rawContent.length.toLocaleString()} characters`
       );
 
-      if (rawContent.length < 800) {
-        console.warn("Skipping: Content too short!");
-        console.log("First 400 chars:", rawContent.slice(0, 400));
-        continue;
-      }
+      let summary = "";
 
-      const prompt = `Provide a concise, insightful summary (200–400 words) of this chapter from St. Gregory the Great's "Morals on the Book of Job". Focus on theological themes, biblical interpretation, and moral lessons.
+      if (rawContent.length < 800) {
+        console.warn("Insufficient content, setting empty state");
+        console.log("First 400 chars:", rawContent.slice(0, 400));
+        rawContent = "";
+      } else {
+        const prompt = `Provide a concise, insightful summary (200–400 words) of this chapter from St. Gregory the Great's "Morals on the Book of Job". Focus on theological themes, biblical interpretation, and moral lessons.
 
 Chapter content:
 ${rawContent.slice(0, 12000)}`;
 
-      console.log("Generating summary...");
-      const result = await model.generateContent(prompt);
-      const summary = result.response.text().trim();
+        console.log("Generating summary...");
+        const result = await model.generateContent(prompt);
+        summary = result.response.text().trim();
 
-      console.log(`Summary length: ${summary.length} characters`);
+        console.log(`Summary length: ${summary.length} characters`);
+      }
 
       const { error } = await supabase.from("chapters").upsert(
         {
@@ -121,7 +112,7 @@ ${rawContent.slice(0, 12000)}`;
     }
   }
 
-  console.log("\nIngestion completed!");
+  console.log("Ingestion completed!");
 }
 
 main().catch((err) => {
