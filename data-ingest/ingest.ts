@@ -27,69 +27,25 @@ async function main() {
   const { data: indexHtml } = await axios.get(INDEX_URL, { timeout: 10000 });
   const $index = cheerio.load(indexHtml);
 
-  const chapters: { number: number; title: string; href: string }[] = [];
+  const candidates: { title: string; href: string }[] = [];
 
   $index('a[href^="untitled-"]').each((_, el) => {
     const $el = $index(el);
     const title = $el.text().trim();
     let href = $el.attr("href")?.split("#")[0];
 
-    if (href && title.startsWith("BOOK ")) {
-      const romanMatch = title.match(/BOOK\s+([IVXLCDM]+)/i);
-      if (romanMatch) {
-        const roman = romanMatch[1].toUpperCase();
-        const romanMap: Record<string, number> = {
-          I: 1,
-          II: 2,
-          III: 3,
-          IV: 4,
-          V: 5,
-          VI: 6,
-          VII: 7,
-          VIII: 8,
-          IX: 9,
-          X: 10,
-          XI: 11,
-          XII: 12,
-          XIII: 13,
-          XIV: 14,
-          XV: 15,
-          XVI: 16,
-          XVII: 17,
-          XVIII: 18,
-          XIX: 19,
-          XX: 20,
-          XXI: 21,
-          XXII: 22,
-          XXIII: 23,
-          XXIV: 24,
-          XXV: 25,
-          XXVI: 26,
-          XXVII: 27,
-          XXVIII: 28,
-          XXIX: 29,
-          XXX: 30,
-          XXXI: 31,
-          XXXII: 32,
-          XXXIII: 33,
-          XXXIV: 34,
-          XXXV: 35,
-        };
-        const number = romanMap[roman];
-        if (number) {
-          chapters.push({ number, title, href });
-        }
-      }
+    if (href && title) {
+      candidates.push({ title, href });
     }
   });
 
-  console.log(`Found ${chapters.length} chapters`);
+  console.log(`Found ${candidates.length} candidates`);
 
-  chapters.sort((a, b) => a.number - b.number);
+  let chapter_number = 1;
 
-  for (const chapter of chapters) {
-    const url = `${BASE_URL}${chapter.href}`;
-    console.log(`\nProcessing Chapter ${chapter.number} - ${chapter.title}`);
+  for (const cand of candidates) {
+    const url = `${BASE_URL}${cand.href}`;
+    console.log(`\nProcessing: ${cand.title}`);
     console.log(`URL: ${url}`);
 
     try {
@@ -125,8 +81,9 @@ async function main() {
       );
 
       if (rawContent.length < 800) {
-        console.warn("WARNING: Content seems too short!");
+        console.warn("Skipping: Content too short!");
         console.log("First 400 chars:", rawContent.slice(0, 400));
+        continue;
       }
 
       const prompt = `Provide a concise, insightful summary (200–400 words) of this chapter from St. Gregory the Great's "Morals on the Book of Job". Focus on theological themes, biblical interpretation, and moral lessons.
@@ -142,8 +99,8 @@ ${rawContent.slice(0, 12000)}`;
 
       const { error } = await supabase.from("chapters").upsert(
         {
-          chapter_number: chapter.number,
-          title: chapter.title,
+          chapter_number,
+          title: cand.title,
           content: rawContent,
           summary,
         },
@@ -156,9 +113,10 @@ ${rawContent.slice(0, 12000)}`;
         console.log("→ Successfully saved/updated");
       }
 
+      chapter_number++;
       await delay();
     } catch (err: any) {
-      console.error("Error processing chapter:", err.message);
+      console.error("Error processing:", err.message);
       if (err.response) console.error("Response:", err.response.data);
     }
   }
