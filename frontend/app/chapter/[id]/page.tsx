@@ -1,93 +1,89 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import { useChapter } from "@/hooks/useChapters";
+import { ArrowLeft, BookOpen, Clock, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, BookOpenText } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import ChapterDetailSkeleton from "@/components/ChapterDetailSkeleton";
+import ChapterDetailError from "@/components/ChapterDetailError";
 
-export default function ChapterDetail() {
-  const { id } = useParams<{ id: string }>();
-  const router = useRouter();
+export default function ChapterPage() {
+  const params = useParams<{ id: string }>();
+  const id = params?.id;
   const { data: chapter, isLoading, error } = useChapter(id);
 
-  if (isLoading) {
-    return (
-      <div className="container py-12">
-        <div className="max-w-5xl mx-auto space-y-8">
-          <Skeleton className="h-12 w-3/4" />
-          <div className="grid md:grid-cols-3 gap-8">
-            <Skeleton className="h-64" />
-            <Skeleton className="h-[70vh] md:col-span-2" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !chapter) {
-    return (
-      <div className="container py-12 text-center text-destructive">
-        {error?.message || "Chapter not found"}
-      </div>
-    );
+  if (error) {
+    return <ChapterDetailError />;
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
-            <ArrowLeft className="h-5 w-5" />
+    <main className="min-h-screen bg-background font-serif selection:bg-accent/30 pb-32 flex flex-col items-center">
+      <nav className="sticky top-0 z-10 w-full flex items-center justify-between border-b border-border/50 bg-background/80 px-6 py-4 backdrop-blur-md">
+        <Link
+          href="/"
+          className="group flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+          Back
+        </Link>
+        <div className="flex items-center gap-6">
+          <div className="hidden md:flex items-center gap-4 text-xs font-medium tracking-widest uppercase text-muted-foreground/60">
+            <span className="flex items-center gap-1.5">
+              <Clock className="h-3 w-3" /> 8 min read
+            </span>
+            <span className="flex items-center gap-1.5">
+              <BookOpen className="h-3 w-3" /> Ch.{" "}
+              {chapter?.chapter_number || ".."}
+            </span>
+          </div>
+          <div className="h-4 w-px bg-border/50 hidden md:block" />
+          <Button variant="ghost" size="icon" className="text-muted-foreground">
+            <Share2 className="h-4 w-4" />
           </Button>
-          <div className="flex-1">
-            <h1 className="text-xl font-serif font-semibold truncate">
-              {chapter.chapter_number}. {chapter.title}
-            </h1>
-          </div>
         </div>
-      </header>
+      </nav>
 
-      <main className="container py-10">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid lg:grid-cols-[320px_1fr] gap-12">
-            {/* Summary sidebar */}
-            <aside className="space-y-6">
-              <Card className="border-primary/20">
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2 text-primary">
-                    <BookOpenText className="h-5 w-5" />
-                    AI Summary
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-muted-foreground leading-relaxed">
-                  <ScrollArea className="h-[75vh]">
-                    {chapter.summary}
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            </aside>
+      <article className="w-full md:w-[66%] px-6 pt-24 md:pt-32">
+        {isLoading ? (
+          <ChapterDetailSkeleton />
+        ) : chapter ? (
+          <>
+            <header className="mb-16 text-center space-y-6 flex flex-col items-center">
+              <div className="font-mono text-sm tracking-[0.2em] uppercase text-accent font-semibold italic">
+                Chapter {chapter.chapter_number}
+              </div>
+              <h1 className="text-4xl font-semibold tracking-tight text-foreground md:text-6xl text-balance leading-[1.1]">
+                {chapter.title}
+              </h1>
+              <div className="h-px w-24 bg-border/50" />
+              <p className="max-w-xl text-lg italic text-muted-foreground leading-relaxed">
+                &quot;{chapter.summary}&quot;
+              </p>
+            </header>
 
-            {/* Main reading area */}
-            <article className="prose prose-neutral dark:prose-invert max-w-none">
-              <h2 className="text-3xl font-serif font-bold mb-8 border-b pb-4">
-                Full Chapter Text
-              </h2>
-              <ScrollArea className="h-[80vh]">
-                <div className="leading-8 text-lg [&>p]:mb-6">
-                  {chapter.content.split("\n\n").map((paragraph, idx) => (
-                    <p key={idx} className="text-foreground/90">
-                      {paragraph}
-                    </p>
-                  ))}
-                </div>
-              </ScrollArea>
-            </article>
-          </div>
-        </div>
-      </main>
-    </div>
+            <div className="prose prose-neutral dark:prose-invert max-w-none">
+              {chapter.content.split("\n\n").map((paragraph, index) => (
+                <p
+                  key={index}
+                  className="mb-8 text-xl leading-[1.8] text-foreground/90 font-light first-letter:text-5xl first-letter:font-bold first-letter:mr-3 first-letter:float-left first-letter:mt-1 first-letter:text-primary"
+                >
+                  {paragraph.trim()}
+                </p>
+              ))}
+            </div>
+
+            <div className="mt-24 pt-12 border-t border-border flex justify-between items-center w-full">
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Previous
+              </p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Next
+              </p>
+            </div>
+          </>
+        ) : null}
+      </article>
+    </main>
   );
 }
