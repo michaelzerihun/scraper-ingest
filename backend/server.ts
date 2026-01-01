@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { createClient } from "@supabase/supabase-js";
 import * as dotenv from "dotenv";
 import { serve } from "@hono/node-server";
@@ -6,6 +7,19 @@ import { serve } from "@hono/node-server";
 dotenv.config();
 
 const app = new Hono();
+
+app.use(
+  "/*",
+  cors({
+    origin: ["http://localhost:3000", "http://localhost:3001"],
+    allowMethods: ["GET", "OPTIONS"],
+    allowHeaders: ["Content-Type"],
+    exposeHeaders: ["Content-Length"],
+    maxAge: 600,
+    credentials: true,
+  })
+);
+
 const supabase = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_ANON_KEY!
