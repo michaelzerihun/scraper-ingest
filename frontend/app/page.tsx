@@ -1,20 +1,25 @@
 "use client";
 
-import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useChaptersList } from "@/hooks/useChapters";
+import { ChapterCard } from "@/components/ChapterCard";
+import { Skeleton } from "@/components/ui/skeleton";
+import { BookOpen } from "lucide-react";
 
-export default function ChaptersPage() {
-  const { data, isLoading, error } = useChaptersList();
+export default function Home() {
+  const { data: chapters, isLoading, error } = useChaptersList();
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-4xl font-bold tracking-tight">Book of Job</h1>
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      <div className="container py-12">
+        <div className="flex items-center gap-3 mb-10">
+          <BookOpen className="h-10 w-10 text-primary" />
+          <h1 className="text-4xl font-serif font-bold">
+            Morals on the Book of Job
+          </h1>
+        </div>
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: 12 }).map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-lg" />
+            <Skeleton key={i} className="h-44 rounded-xl" />
           ))}
         </div>
       </div>
@@ -23,31 +28,24 @@ export default function ChaptersPage() {
 
   if (error) {
     return (
-      <div className="text-center text-destructive-foreground">
+      <div className="container py-12 text-center text-destructive">
         Failed to load chapters: {error.message}
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-4xl font-bold tracking-tight">Book of Job</h1>
-      <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        {data?.map((chapter) => (
-          <Link key={chapter.id} href={`/chapter/${chapter.id}`}>
-            <Card className="h-full transition-shadow hover:shadow-md">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg line-clamp-2">
-                  Chapter {chapter.chapter_number}: {chapter.title}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Click to view summary and content
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
+    <div className="p-12 w-full ">
+      <div className="flex items-center justify-center gap-3 mb-12">
+        <BookOpen className="h-10 w-10 text-primary" />
+        <h1 className="text-4xl md:text-5xl font-serif font-bold tracking-tight">
+          Morals on the Book of Job
+        </h1>
+      </div>
+
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {chapters?.map((ch) => (
+          <ChapterCard key={ch.id} chapter={ch} />
         ))}
       </div>
     </div>
