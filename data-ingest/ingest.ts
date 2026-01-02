@@ -28,12 +28,10 @@ async function main() {
   const $index = cheerio.load(indexHtml);
 
   const candidates: { title: string; href: string }[] = [];
-
   $index('a[href^="untitled-"]').each((_, el) => {
     const $el = $index(el);
     const title = $el.text().trim();
-    let href = $el.attr("href")?.split("#")[0];
-
+    const href = $el.attr("href")?.split("#")[0];
     if (href && title) {
       candidates.push({ title, href });
     }
@@ -42,7 +40,6 @@ async function main() {
   console.log(`Found ${candidates.length} candidates`);
 
   let chapter_number = 1;
-
   for (const cand of candidates) {
     const url = `${BASE_URL}${cand.href}`;
     console.log(`\nProcessing: ${cand.title}`);
@@ -51,53 +48,73 @@ async function main() {
     try {
       const { data: html } = await axios.get(url, { timeout: 15000 });
       const $ = cheerio.load(html);
-
-      let contentContainer = $('table[border="0"][width="100%"] td').eq(1);
-
+      const contentContainer = $('table[border="0"][width="100%"] td').eq(1);
       let rawContent = contentContainer.html() || contentContainer.text() || "";
 
+      // Enhanced cleaning
       rawContent = rawContent
-        .replace(/<[^>]+>/g, "\n")
-        .replace(/MORALS ON THE BOOK OF JOB.*?GREGORY THE GREAT/gi, "")
-        .replace(/Back to Top|Home|Previous|Next|Catholic Encyclopedia/gi, "")
-        .replace(/\[\d+\]/g, "")
-        .replace(/[\r\n\t]+/g, "\n")
-        .replace(/\n{3,}/g, "\n\n")
+        .replace(/<[^>]+>/g, "\n") // Remove HTML tags
+        .replace(/MORALS ON THE BOOK OF JOB.*?GREGORY THE GREAT/gi, "") // Remove headers
+        .replace(/Back to Top|Home|Previous|Next|Catholic Encyclopedia/gi, "") // Remove nav
+        .replace(/\[\d+\]/g, "") // Remove footnotes
+        .replace(/Copyright.*$/gis, "") // Remove copyright sections
+        .replace(/[\r\n\t]+/g, "\n") // Normalize newlines
+        .replace(/\n{3,}/g, "\n\n") // Collapse multiple newlines
         .trim();
 
+      // Strip title if it appears at the start (exact or slight variation)
+      const titleLower = cand.title.toLowerCase().trim();
+      const contentLower = rawContent.toLowerCase().trim();
+      if (contentLower.startsWith(titleLower)) {
+        rawContent = rawContent.slice(cand.title.length).trim();
+      } else if (
+        contentLower === titleLower ||
+        contentLower.replace(/[^a-z0-9]/g, "") ===
+          titleLower.replace(/[^a-z0-9]/g, "")
+      ) {
+        rawContent = ""; // Treat as only title if slight variation
+      }
+
       console.log(
-        `Content length: ${rawContent.length.toLocaleString()} characters`
+        `Cleaned content length: ${rawContent.length.toLocaleString()} characters`
       );
 
       let summary = "";
+      const isJunk = rawContent.includes(".side_menu");
+      const isOnlyTitle =
+        rawContent.trim().length === 0 ||
+        rawContent.trim().toLowerCase() === titleLower;
+      const isCopyright = rawContent.toLowerCase().includes("copyright");
 
-      let isJunk = rawContent.includes(".side_menu");
-
-      let isOnlyTitle = rawContent.trim() === cand.title.trim();
-
-      let isCopyright =
-        rawContent.toLowerCase().includes("copyright") &&
-        rawContent.length < 800;
-
-      if (isOnlyTitle || isCopyright || (rawContent.length < 100 && isJunk)) {
+      // Detection without char limit: Skip if junk, only title, or pure copyright (after stripping)
+      if (
+        isJunk ||
+        isOnlyTitle ||
+        (isCopyright &&
+          rawContent.replace(/copyright.*$/gis, "").trim().length === 0)
+      ) {
         console.warn(
           "Empty, only title, copyright, or junk content detected, setting empty state"
         );
         console.log("Content:", rawContent.slice(0, 400));
         rawContent = "";
       } else if (rawContent.length > 0) {
-        const prompt = `Don't summarize it if it is nothing to summarize, if its a copyright, empty, or just the title. Otherwise, provide a concise, insightful summary (200–400 words) of this chapter from St. Gregory the Great's "Morals on the Book of Job". Focus on theological themes, biblical interpretation, and moral lessons. If the content is very short, provide a shorter summary accordingly.
-
+        const prompt = `Ignore any copyright notices, chapter titles, or navigation elements. Focus solely on summarizing the main content: the theological themes, biblical interpretations, and moral lessons from St. Gregory the Great's commentary on the Book of Job. Provide a concise, insightful summary (200–400 words). If the content is very short or insubstantial, provide a shorter summary accordingly. If there's nothing substantive to summarize, return an empty string.
 Chapter content:
-${rawContent.slice(0, 12000)}`;
+${rawContent.slice(0, 30000)}`; // Increased limit for longer chapters
 
         console.log("Generating summary...");
         const result = await model.generateContent(prompt);
         summary = result.response.text().trim();
 
-        console.log(`Summary length: ${summary.length} characters`);
+        if (summary === "") {
+          console.warn("AI returned empty summary, treating as no content");
+          rawContent = "";
+        } else {
+          console.log(`Summary length: ${summary.length} characters`);
+        }
       } else {
-        console.warn("No content, setting empty state");
+        console.warn("No content after cleaning, setting empty state");
       }
 
       const { error } = await supabase.from("chapters").upsert(
