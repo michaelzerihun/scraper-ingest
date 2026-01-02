@@ -45,7 +45,7 @@ async function main() {
 
   for (const cand of candidates) {
     const url = `${BASE_URL}${cand.href}`;
-    console.log(`Processing: ${cand.title}`);
+    console.log(`\nProcessing: ${cand.title}`);
     console.log(`URL: ${url}`);
 
     try {
@@ -71,12 +71,22 @@ async function main() {
 
       let summary = "";
 
-      if (rawContent.length < 800) {
-        console.warn("Insufficient content, setting empty state");
-        console.log("First 400 chars:", rawContent.slice(0, 400));
+      let isJunk = rawContent.includes(".side_menu");
+
+      let isOnlyTitle = rawContent.trim() === cand.title.trim();
+
+      let isCopyright =
+        rawContent.toLowerCase().includes("copyright") &&
+        rawContent.length < 800;
+
+      if (isOnlyTitle || isCopyright || (rawContent.length < 100 && isJunk)) {
+        console.warn(
+          "Empty, only title, copyright, or junk content detected, setting empty state"
+        );
+        console.log("Content:", rawContent.slice(0, 400));
         rawContent = "";
-      } else {
-        const prompt = `Provide a concise, insightful summary (200–400 words) of this chapter from St. Gregory the Great's "Morals on the Book of Job". Focus on theological themes, biblical interpretation, and moral lessons.
+      } else if (rawContent.length > 0) {
+        const prompt = `Don't summarize it if it is nothing to summarize, if its a copyright, empty, or just the title. Otherwise, provide a concise, insightful summary (200–400 words) of this chapter from St. Gregory the Great's "Morals on the Book of Job". Focus on theological themes, biblical interpretation, and moral lessons. If the content is very short, provide a shorter summary accordingly.
 
 Chapter content:
 ${rawContent.slice(0, 12000)}`;
@@ -86,6 +96,8 @@ ${rawContent.slice(0, 12000)}`;
         summary = result.response.text().trim();
 
         console.log(`Summary length: ${summary.length} characters`);
+      } else {
+        console.warn("No content, setting empty state");
       }
 
       const { error } = await supabase.from("chapters").upsert(
@@ -112,7 +124,7 @@ ${rawContent.slice(0, 12000)}`;
     }
   }
 
-  console.log("Ingestion completed!");
+  console.log("\nIngestion completed!");
 }
 
 main().catch((err) => {
