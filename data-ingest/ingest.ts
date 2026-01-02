@@ -51,18 +51,16 @@ async function main() {
       const contentContainer = $('table[border="0"][width="100%"] td').eq(1);
       let rawContent = contentContainer.html() || contentContainer.text() || "";
 
-      // Enhanced cleaning
       rawContent = rawContent
-        .replace(/<[^>]+>/g, "\n") // Remove HTML tags
-        .replace(/MORALS ON THE BOOK OF JOB.*?GREGORY THE GREAT/gi, "") // Remove headers
-        .replace(/Back to Top|Home|Previous|Next|Catholic Encyclopedia/gi, "") // Remove nav
-        .replace(/\[\d+\]/g, "") // Remove footnotes
-        .replace(/Copyright.*$/gis, "") // Remove copyright sections
-        .replace(/[\r\n\t]+/g, "\n") // Normalize newlines
-        .replace(/\n{3,}/g, "\n\n") // Collapse multiple newlines
+        .replace(/<[^>]+>/g, "\n")
+        .replace(/MORALS ON THE BOOK OF JOB.*?GREGORY THE GREAT/gi, "")
+        .replace(/Back to Top|Home|Previous|Next|Catholic Encyclopedia/gi, "")
+        .replace(/\[\d+\]/g, "")
+        .replace(/Copyright.*$/gis, "")
+        .replace(/[\r\n\t]+/g, "\n")
+        .replace(/\n{3,}/g, "\n\n")
         .trim();
 
-      // Strip title if it appears at the start (exact or slight variation)
       const titleLower = cand.title.toLowerCase().trim();
       const contentLower = rawContent.toLowerCase().trim();
       if (contentLower.startsWith(titleLower)) {
@@ -72,7 +70,7 @@ async function main() {
         contentLower.replace(/[^a-z0-9]/g, "") ===
           titleLower.replace(/[^a-z0-9]/g, "")
       ) {
-        rawContent = ""; // Treat as only title if slight variation
+        rawContent = "";
       }
 
       console.log(
@@ -86,7 +84,6 @@ async function main() {
         rawContent.trim().toLowerCase() === titleLower;
       const isCopyright = rawContent.toLowerCase().includes("copyright");
 
-      // Detection without char limit: Skip if junk, only title, or pure copyright (after stripping)
       if (
         isJunk ||
         isOnlyTitle ||
@@ -101,7 +98,7 @@ async function main() {
       } else if (rawContent.length > 0) {
         const prompt = `Ignore any copyright notices, chapter titles, or navigation elements. Focus solely on summarizing the main content: the theological themes, biblical interpretations, and moral lessons from St. Gregory the Great's commentary on the Book of Job. Provide a concise, insightful summary (200–400 words). If the content is very short or insubstantial, provide a shorter summary accordingly. If there's nothing substantive to summarize, return an empty string.
 Chapter content:
-${rawContent.slice(0, 30000)}`; // Increased limit for longer chapters
+${rawContent.slice(0, 30000)}`;
 
         console.log("Generating summary...");
         const result = await model.generateContent(prompt);
